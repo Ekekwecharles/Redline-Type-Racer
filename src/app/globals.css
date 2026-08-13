@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html,
+body {
   background: #0a0e14;
   color: #eef1f6;
 }
@@ -12,22 +13,46 @@ html, body {
   color: white;
 }
 
-.char-correct { color: #22d3ee; }
-.char-wrong { color: #f43f5e; background: rgba(244,63,94,0.15); border-radius: 2px; }
-.char-pending { color: #4b5566; }
-.char-current { color: #eef1f6; background: #8b5cf6; border-radius: 2px; }
+.char-correct {
+  color: #22d3ee;
+}
+.char-wrong {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.15);
+  border-radius: 2px;
+}
+.char-pending {
+  color: #4b5566;
+}
+.char-current {
+  color: #eef1f6;
+  background: #8b5cf6;
+  border-radius: 2px;
+}
 
 .lane-stripes {
-  background: repeating-linear-gradient(90deg, #3b4457 0 18px, transparent 18px 36px);
+  background: repeating-linear-gradient(
+    90deg,
+    #3b4457 0 18px,
+    transparent 18px 36px
+  );
 }
 .lane.moving .lane-stripes {
   animation: dash 0.6s linear infinite;
 }
 @keyframes dash {
-  from { background-position-x: 0; }
-  to { background-position-x: -36px; }
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -36px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lane.moving .lane-stripes, .vehicle { animation: none !important; transition: none !important; }
+  .lane.moving .lane-stripes,
+  .vehicle {
+    animation: none !important;
+    transition: none !important;
+  }
 }
