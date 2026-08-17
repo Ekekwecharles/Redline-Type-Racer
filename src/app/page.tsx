@@ -183,6 +183,7 @@ export default function RacePage() {
     const tick = () => {
       if (!raceStartRef.current) return;
       const elapsedMs = Date.now() - raceStartRef.current;
+      console.log("tick, elapsedMs:", elapsedMs); // add this
       const elapsedMin = elapsedMs / 60000;
 
       if (
