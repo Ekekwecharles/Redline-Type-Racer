@@ -7,11 +7,14 @@ interface UseTypingCoreArgs {
   penaltyPerMistake: number;
   onComplete?: () => void;
 }
-
-export function useTypingCore({ targetText, penaltyPerMistake, onComplete }: UseTypingCoreArgs) {
+export function useTypingCore({
+  targetText,
+  penaltyPerMistake,
+  onComplete,
+}: UseTypingCoreArgs) {
   const [typedChars, setTypedChars] = useState(0);
-  const [typedState, setTypedState] = useState<Array<"ok" | "bad" | null>>(
-    () => new Array(targetText.length).fill(null)
+  const [typedState, setTypedState] = useState<Array<"ok" | "bad" | null>>(() =>
+    new Array(targetText.length).fill(null),
   );
   const [correctChars, setCorrectChars] = useState(0);
   const [mistakes, setMistakes] = useState(0);
@@ -24,32 +27,38 @@ export function useTypingCore({ targetText, penaltyPerMistake, onComplete }: Use
   const [finished, setFinished] = useState(false);
   const startTimeRef = useRef<number | null>(null);
 
-  const reset = useCallback((newText?: string) => {
-    const text = newText ?? targetText;
-    setTypedChars(0);
-    setTypedState(new Array(text.length).fill(null));
-    setCorrectChars(0);
-    setMistakes(0);
-    setCombo(0);
-    setMaxCombo(0);
-    setPenaltyChars(0);
-    setWpm(0);
-    setAcc(100);
-    setActive(false);
-    setFinished(false);
-    startTimeRef.current = null;
-  }, [targetText]);
+  const reset = useCallback(
+    (newText?: string) => {
+      const text = newText ?? targetText;
+      setTypedChars(0);
+      setTypedState(new Array(text.length).fill(null));
+      setCorrectChars(0);
+      setMistakes(0);
+      setCombo(0);
+      setMaxCombo(0);
+      setPenaltyChars(0);
+      setWpm(0);
+      setAcc(100);
+      setActive(false);
+      setFinished(false);
+      startTimeRef.current = null;
+    },
+    [targetText],
+  );
 
-  const recomputeGauges = useCallback((correct: number, mistakeCount: number) => {
-    if (!startTimeRef.current) return;
-    const elapsedMin = (Date.now() - startTimeRef.current) / 60000;
-    const newWpm = elapsedMin > 0 ? Math.round(correct / 5 / elapsedMin) : 0;
-    const total = correct + mistakeCount;
-    const newAcc = total > 0 ? Math.round((correct / total) * 100) : 100;
-    setWpm(newWpm);
-    setAcc(newAcc);
-    return { wpm: newWpm, acc: newAcc };
-  }, []);
+  const recomputeGauges = useCallback(
+    (correct: number, mistakeCount: number) => {
+      if (!startTimeRef.current) return;
+      const elapsedMin = (Date.now() - startTimeRef.current) / 60000;
+      const newWpm = elapsedMin > 0 ? Math.round(correct / 5 / elapsedMin) : 0;
+      const total = correct + mistakeCount;
+      const newAcc = total > 0 ? Math.round((correct / total) * 100) : 100;
+      setWpm(newWpm);
+      setAcc(newAcc);
+      return { wpm: newWpm, acc: newAcc };
+    },
+    [],
+  );
 
   const handleInputValue = useCallback(
     (value: string) => {
@@ -117,7 +126,16 @@ export function useTypingCore({ targetText, penaltyPerMistake, onComplete }: Use
         onComplete?.();
       }
     },
-    [active, combo, maxCombo, finished, penaltyPerMistake, targetText, typedChars, onComplete]
+    [
+      active,
+      combo,
+      maxCombo,
+      finished,
+      penaltyPerMistake,
+      targetText,
+      typedChars,
+      onComplete,
+    ],
   );
 
   // Recompute WPM/accuracy on every correctChars/mistakes change while active
@@ -125,7 +143,12 @@ export function useTypingCore({ targetText, penaltyPerMistake, onComplete }: Use
     return recomputeGauges(correctChars, mistakes);
   }, [correctChars, mistakes, recomputeGauges]);
 
-  const progressPct = Math.min(96, (Math.max(0, correctChars - penaltyChars) / Math.max(1, targetText.length)) * 100);
+  const progressPct = Math.min(
+    96,
+    (Math.max(0, correctChars - penaltyChars) /
+      Math.max(1, targetText.length)) *
+      100,
+  );
 
   return {
     typedChars,

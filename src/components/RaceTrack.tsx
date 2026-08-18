@@ -25,8 +25,10 @@ export default function RaceTrack({ lanes, moving, boosting }: RaceTrackProps) {
       {lanes.map((lane) => (
         <div
           key={lane.key}
-          // "moving" class only applied while the race is active, likely
-          // drives the scrolling lane-stripe animation via CSS.
+          // "moving" class only applied while the race is active. In globals.css,
+          // .lane.moving .lane-stripes runs a looping background-position animation
+          // (`dash`, 0.6s linear infinite) that shifts the striped background
+          // leftward, creating the illusion of road markings scrolling past.
           className={`lane relative h-11 mb-2 rounded-lg bg-asphalt-3 overflow-hidden ${moving ? "moving" : ""}`}
         >
           {/* Decorative center dashed line for the lane */}

@@ -167,15 +167,22 @@ export default function RacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetText]);
 
-  /**
-   * Main race loop. Starts on the player's first keystroke (`typing.active`
-   * becomes true) and runs via requestAnimationFrame until the race ends.
-   * Each tick:
-   *  - checks the "time" mode deadline and finishes the race if reached
-   *  - advances each bot's progress based on elapsed time and its wpm
-   *  - refreshes the player's live gauges (WPM/accuracy/combo)
-   *  - checks the "words" mode win condition (a bot crossing the finish line)
-   */
+  // keep latest values in a ref so `tick` always sees current data
+  const botsRef = useRef(bots);
+  useEffect(() => {
+    botsRef.current = bots;
+  }, [bots]);
+
+  const finishRaceRef = useRef(finishRace);
+  useEffect(() => {
+    finishRaceRef.current = finishRace;
+  }, [finishRace]);
+
+  const typingRef = useRef(typing);
+  useEffect(() => {
+    typingRef.current = typing;
+  }, [typing]);
+
   useEffect(() => {
     if (!typing.active) return;
     raceStartRef.current = typing.startTimeRef.current;
@@ -183,25 +190,23 @@ export default function RacePage() {
     const tick = () => {
       if (!raceStartRef.current) return;
       const elapsedMs = Date.now() - raceStartRef.current;
-      console.log("tick, elapsedMs:", elapsedMs); // add this
       const elapsedMin = elapsedMs / 60000;
 
       if (
         settings.raceMode === "time" &&
         elapsedMs / 1000 >= settings.timeSeconds
       ) {
-        finishRace(
-          typing.correctChars,
-          typing.penaltyChars,
-          typing.wpm,
-          typing.acc,
-          typing.maxCombo,
+        const t = typingRef.current;
+        finishRaceRef.current(
+          t.correctChars,
+          t.penaltyChars,
+          t.wpm,
+          t.acc,
+          t.maxCombo,
         );
         return;
       }
 
-      // Bot progress model: wpm * 5 approximates chars/min (avg 5 chars per word),
-      // scaled by elapsed minutes and normalized against the target text length.
       setBots((prev) =>
         prev.map((b) => ({
           ...b,
@@ -212,16 +217,17 @@ export default function RacePage() {
         })),
       );
 
-      typing.tickGauges();
+      typingRef.current.tickGauges();
 
-      const anyBotDone = bots.some((b) => b.pct >= 100);
+      const anyBotDone = botsRef.current.some((b) => b.pct >= 100);
       if (settings.raceMode === "words" && anyBotDone && !resultOpen) {
-        finishRace(
-          typing.correctChars,
-          typing.penaltyChars,
-          typing.wpm,
-          typing.acc,
-          typing.maxCombo,
+        const t = typingRef.current;
+        finishRaceRef.current(
+          t.correctChars,
+          t.penaltyChars,
+          t.wpm,
+          t.acc,
+          t.maxCombo,
         );
         return;
       }
@@ -232,8 +238,80 @@ export default function RacePage() {
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typing.active]);
+  }, [
+    typing.active,
+    settings.raceMode,
+    settings.timeSeconds,
+    targetText.length,
+    resultOpen,
+  ]);
+
+  /**
+   * Main race loop. Starts on the player's first keystroke (`typing.active`
+   * becomes true) and runs via requestAnimationFrame until the race ends.
+   * Each tick:
+   *  - checks the "time" mode deadline and finishes the race if reached
+   *  - advances each bot's progress based on elapsed time and its wpm
+   *  - refreshes the player's live gauges (WPM/accuracy/combo)
+   *  - checks the "words" mode win condition (a bot crossing the finish line)
+   */
+  // useEffect(() => {
+  //   if (!typing.active) return;
+  //   raceStartRef.current = typing.startTimeRef.current;
+
+  //   const tick = () => {
+  //     if (!raceStartRef.current) return;
+  //     const elapsedMs = Date.now() - raceStartRef.current;
+  //     const elapsedMin = elapsedMs / 60000;
+
+  //     if (
+  //       settings.raceMode === "time" &&
+  //       elapsedMs / 1000 >= settings.timeSeconds
+  //     ) {
+  //       finishRace(
+  //         typing.correctChars,
+  //         typing.penaltyChars,
+  //         typing.wpm,
+  //         typing.acc,
+  //         typing.maxCombo,
+  //       );
+  //       return;
+  //     }
+
+  //     // Bot progress model: wpm * 5 approximates chars/min (avg 5 chars per word),
+  //     // scaled by elapsed minutes and normalized against the target text length.
+  //     setBots((prev) =>
+  //       prev.map((b) => ({
+  //         ...b,
+  //         pct: Math.min(
+  //           100,
+  //           ((b.wpm * 5 * elapsedMin) / targetText.length) * 100,
+  //         ),
+  //       })),
+  //     );
+
+  //     typing.tickGauges();
+
+  //     const anyBotDone = bots.some((b) => b.pct >= 100);
+  //     if (settings.raceMode === "words" && anyBotDone && !resultOpen) {
+  //       finishRace(
+  //         typing.correctChars,
+  //         typing.penaltyChars,
+  //         typing.wpm,
+  //         typing.acc,
+  //         typing.maxCombo,
+  //       );
+  //       return;
+  //     }
+
+  //     animRef.current = requestAnimationFrame(tick);
+  //   };
+  //   animRef.current = requestAnimationFrame(tick);
+  //   return () => {
+  //     if (animRef.current) cancelAnimationFrame(animRef.current);
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [typing.active]);
 
   // Lane data passed to RaceTrack: the player's lane first, followed by each bot.
   // Bots are capped at 96% for the same visual reason as `yourPct` above.
