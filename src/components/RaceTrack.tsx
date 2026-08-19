@@ -37,8 +37,9 @@ export default function RaceTrack({ lanes, moving, boosting }: RaceTrackProps) {
           {/* The car itself. Horizontal position is driven entirely by
               `left: lane.pct%`, animated smoothly via the CSS transition
               on `left` rather than manual JS animation. */}
+          {/* transition-[left] duration-150 ease-linear - removed this from the div below */}
           <div
-            className="vehicle absolute top-1/2 -translate-y-1/2 text-2xl transition-[left] duration-150 ease-linear"
+            className="vehicle absolute top-1/2 -translate-y-1/2 text-2xl "
             style={{
               left: `${lane.pct}%`,
               // Extra glow only for the player's own car: stronger
