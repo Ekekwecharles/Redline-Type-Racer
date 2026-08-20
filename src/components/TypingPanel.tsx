@@ -12,7 +12,7 @@ interface TypingPanelProps {
   disabled?: boolean;
 }
 
-export default function TypingPanel({
+function TypingPanel({
   targetText,
   typedChars,
   typedState,
@@ -112,3 +112,5 @@ export default function TypingPanel({
     </div>
   );
 }
+
+export default React.memo(TypingPanel);

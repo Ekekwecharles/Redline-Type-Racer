@@ -6,6 +6,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { genText } from "@/lib/words";
 import { currentDifficultyConfig, defaultSettings } from "@/lib/difficulty";
 import { CARS } from "@/lib/cars";
+import { CAR_ICONS, BOT_ICONS } from "@/lib/car-icons";
+import { Car as CarIcon } from "lucide-react";
 import HUD from "@/components/HUD";
 import RaceTrack, { LaneData } from "@/components/RaceTrack";
 import TypingPanel from "@/components/TypingPanel";
@@ -252,14 +254,14 @@ export default function RacePage() {
     {
       key: "you",
       label: `${profile.name} (You)`,
-      emoji: myCar.emoji,
+      icon: CAR_ICONS[myCar.id] ?? CarIcon,
       pct: typing.progressPct,
       isYou: true,
     },
-    ...bots.map((b) => ({
+    ...bots.map((b, i) => ({
       key: b.key,
       label: b.label,
-      emoji: "🚙",
+      icon: BOT_ICONS[i % BOT_ICONS.length],
       pct: Math.min(96, b.pct),
       isYou: false,
     })),

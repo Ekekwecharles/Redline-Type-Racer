@@ -7,7 +7,7 @@ interface HUDProps {
   penalty: number;
 }
 
-export default function HUD({ wpm, acc, combo, penalty }: HUDProps) {
+function HUD({ wpm, acc, combo, penalty }: HUDProps) {
   const items = [
     { label: "WPM", value: wpm, color: "text-cyan" },
     { label: "Accuracy", value: `${acc}%`, color: "text-amber" },
@@ -32,3 +32,5 @@ export default function HUD({ wpm, acc, combo, penalty }: HUDProps) {
     </div>
   );
 }
+
+export default React.memo(HUD);

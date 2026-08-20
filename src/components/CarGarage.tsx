@@ -2,6 +2,8 @@
 
 import { CARS, isCarUnlocked } from "@/lib/cars";
 import { useProfile } from "@/hooks/useProfile";
+import { CAR_ICONS } from "@/lib/car-icons";
+import { Car as CarIcon } from "lucide-react";
 
 export default function CarGarage() {
   const { profile, selectCar, buyCar } = useProfile();
@@ -12,25 +14,20 @@ export default function CarGarage() {
         Your Garage
       </h2>
 
-      {/* Responsive card grid: as many columns as fit, each at least 220px wide */}
       <div
         className="grid gap-3"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
       >
         {CARS.map((car) => {
-          // Whether the player currently meets this car's unlock requirement
-          // (level, coins, or Pro subscription, depending on car.unlock.type).
           const unlocked = isCarUnlocked(car, profile);
-          // Whether this is the car currently equipped by the player.
           const selected = profile.selectedCar === car.id;
+          const Icon = CAR_ICONS[car.id] ?? CarIcon; // fallback if a car has no mapped icon
 
           return (
             <div
               key={car.id}
               className={`relative bg-asphalt-3 border rounded-xl p-3.5 ${selected ? "border-cyan" : "border-line"}`}
             >
-              {/* Locked badge in the corner, only shown for cars not yet
-                  unlocked. Styled amber for Pro-gated cars, dim otherwise. */}
               {!unlocked && (
                 <div
                   className={`absolute top-2.5 right-2.5 text-[10px] border rounded-full px-2 py-0.5 ${car.unlock.type === "pro" ? "text-amber border-amber" : "text-dim border-line"}`}
@@ -43,14 +40,21 @@ export default function CarGarage() {
                 </div>
               )}
 
-              <div className="text-4xl">{car.emoji}</div>
+              {/* Icon replaces the old emoji div. Dimmed if locked,
+                  cyan if currently selected, fog-colored otherwise. */}
+              <Icon
+                size={36}
+                strokeWidth={1.75}
+                className={
+                  !unlocked ? "text-dim" : selected ? "text-cyan" : "text-fog"
+                }
+              />
+
               <h3 className="font-display text-[13px] mt-2 mb-1">{car.name}</h3>
               <p className="text-[11px] text-dim leading-relaxed mb-2.5">
                 {car.desc}
               </p>
 
-              {/* Stat bars: speed/accel/handling rendered as filled-width
-                  bars, driven by each stat's 0-100 value as a percentage. */}
               {[
                 { label: "Speed", value: car.speed, color: "bg-cyan" },
                 { label: "Accel", value: car.accel, color: "bg-violet" },
@@ -70,10 +74,6 @@ export default function CarGarage() {
                 </div>
               ))}
 
-              {/* Action button, three possible states depending on the car:
-                  1. unlocked → Select / Equipped
-                  2. locked but coin-purchasable → Buy button
-                  3. locked and not purchasable (level/Pro gated) → disabled Locked button */}
               <div className="mt-2.5">
                 {unlocked ? (
                   <button
