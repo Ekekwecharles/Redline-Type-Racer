@@ -9,6 +9,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { genText } from "@/lib/words";
 import { currentDifficultyConfig, defaultSettings } from "@/lib/difficulty";
 import { CARS } from "@/lib/cars";
+import { CAR_ICONS, PEER_ICONS } from "@/lib/car-icons";
+import { Car as CarIcon } from "lucide-react";
 import HUD from "@/components/HUD";
 import RaceTrack, { LaneData } from "@/components/RaceTrack";
 import TypingPanel from "@/components/TypingPanel";
@@ -25,7 +27,8 @@ interface Peer {
 function roomCode(len: number) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
-  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < len; i++)
+    s += chars[Math.floor(Math.random() * chars.length)];
   return s;
 }
 
@@ -60,7 +63,9 @@ export default function MultiplayerPage() {
   const joinRoom = useCallback(
     (code: string, asHost: boolean) => {
       const pusher = getPusherClient();
-      const channel = pusher.subscribe(`presence-race-${code}`) as PresenceChannel;
+      const channel = pusher.subscribe(
+        `presence-race-${code}`,
+      ) as PresenceChannel;
       channelRef.current = channel;
       setRoom(code);
       setIsHost(asHost);
@@ -69,13 +74,29 @@ export default function MultiplayerPage() {
         setMyId(String(members.myID));
         const next: Record<string, Peer> = {};
         members.each((m: { id: string; info: { name?: string } }) => {
-          next[m.id] = { id: m.id, name: m.info?.name || "Racer", pct: 0, finished: false };
+          next[m.id] = {
+            id: m.id,
+            name: m.info?.name || "Racer",
+            pct: 0,
+            finished: false,
+          };
         });
         setPeers(next);
       });
-      channel.bind("pusher:member_added", (m: { id: string; info: { name?: string } }) => {
-        setPeers((prev) => ({ ...prev, [m.id]: { id: m.id, name: m.info?.name || "Racer", pct: 0, finished: false } }));
-      });
+      channel.bind(
+        "pusher:member_added",
+        (m: { id: string; info: { name?: string } }) => {
+          setPeers((prev) => ({
+            ...prev,
+            [m.id]: {
+              id: m.id,
+              name: m.info?.name || "Racer",
+              pct: 0,
+              finished: false,
+            },
+          }));
+        },
+      );
       channel.bind("pusher:member_removed", (m: { id: string }) => {
         setPeers((prev) => {
           const next = { ...prev };
@@ -83,17 +104,28 @@ export default function MultiplayerPage() {
           return next;
         });
       });
-      channel.bind("client-start", (data: { text: string; startAt: number }) => {
-        beginRace(data.text, data.startAt);
-      });
+      channel.bind(
+        "client-start",
+        (data: { text: string; startAt: number }) => {
+          beginRace(data.text, data.startAt);
+        },
+      );
       channel.bind("client-progress", (data: { id: string; pct: number }) => {
-        setPeers((prev) => (prev[data.id] ? { ...prev, [data.id]: { ...prev[data.id], pct: data.pct } } : prev));
+        setPeers((prev) =>
+          prev[data.id]
+            ? { ...prev, [data.id]: { ...prev[data.id], pct: data.pct } }
+            : prev,
+        );
       });
       channel.bind("client-finish", (data: { id: string }) => {
-        setPeers((prev) => (prev[data.id] ? { ...prev, [data.id]: { ...prev[data.id], finished: true } } : prev));
+        setPeers((prev) =>
+          prev[data.id]
+            ? { ...prev, [data.id]: { ...prev[data.id], finished: true } }
+            : prev,
+        );
       });
     },
-    [beginRace]
+    [beginRace],
   );
 
   function createRoom() {
@@ -121,13 +153,22 @@ export default function MultiplayerPage() {
   function handleFinish() {
     setPhase("finished");
     channelRef.current?.trigger("client-finish", { id: myId });
-    recordRace({ wpm: typing.wpm, acc: typing.acc, maxCombo: typing.maxCombo, won: true, mode: "multiplayer" });
+    recordRace({
+      wpm: typing.wpm,
+      acc: typing.acc,
+      maxCombo: typing.maxCombo,
+      won: true,
+      mode: "multiplayer",
+    });
   }
 
   // broadcast progress as we type
   useEffect(() => {
     if (phase === "racing" && channelRef.current && myId) {
-      channelRef.current.trigger("client-progress", { id: myId, pct: typing.progressPct });
+      channelRef.current.trigger("client-progress", {
+        id: myId,
+        pct: typing.progressPct,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typing.progressPct]);
@@ -147,8 +188,14 @@ export default function MultiplayerPage() {
     return (
       <div className="bg-asphalt-2 border border-line rounded-2xl p-6 text-center">
         <h2 className="font-display text-lg mb-2">Sign in to race online</h2>
-        <p className="text-sm text-dim mb-4">Solo races vs AI don&apos;t need an account, but real multiplayer does — it's how we know who's in your room.</p>
-        <a href="/login" className="inline-block font-display text-[11px] tracking-wider font-bold bg-gradient-to-r from-violet to-cyan text-asphalt rounded-lg px-4 py-2.5">
+        <p className="text-sm text-dim mb-4">
+          Solo races vs AI don&apos;t need an account, but real multiplayer does
+          — it's how we know who's in your room.
+        </p>
+        <a
+          href="/login"
+          className="inline-block font-display text-[11px] tracking-wider font-bold bg-gradient-to-r from-violet to-cyan text-asphalt rounded-lg px-4 py-2.5"
+        >
           Sign In / Register
         </a>
       </div>
@@ -158,12 +205,18 @@ export default function MultiplayerPage() {
   if (!room) {
     return (
       <div className="bg-asphalt-2 border border-line rounded-2xl p-5">
-        <h2 className="font-display text-sm tracking-widest uppercase text-fog mb-2">Race Someone, Anywhere</h2>
+        <h2 className="font-display text-sm tracking-widest uppercase text-fog mb-2">
+          Race Someone, Anywhere
+        </h2>
         <p className="text-xs text-dim mb-4">
-          Real-time, cross-device rooms powered by Pusher Channels. Create a room and send the code to a friend on any device, anywhere.
+          Real-time, cross-device rooms powered by Pusher Channels. Create a
+          room and send the code to a friend on any device, anywhere.
         </p>
         <div className="flex gap-2.5 flex-wrap items-center">
-          <button onClick={createRoom} className="font-display text-[11px] tracking-wider font-bold bg-gradient-to-r from-violet to-cyan text-asphalt rounded-lg px-4 py-2.5">
+          <button
+            onClick={createRoom}
+            className="font-display text-[11px] tracking-wider font-bold bg-gradient-to-r from-violet to-cyan text-asphalt rounded-lg px-4 py-2.5"
+          >
             Create Room
           </button>
           <input
@@ -172,7 +225,10 @@ export default function MultiplayerPage() {
             placeholder="Enter room code"
             className="bg-asphalt-3 border border-line rounded-lg px-3 py-2 text-sm uppercase w-40"
           />
-          <button onClick={joinExisting} className="font-display text-[11px] tracking-wider border border-line text-fog rounded-lg px-4 py-2.5 hover:border-cyan hover:text-white">
+          <button
+            onClick={joinExisting}
+            className="font-display text-[11px] tracking-wider border border-line text-fog rounded-lg px-4 py-2.5 hover:border-cyan hover:text-white"
+          >
             Join Room
           </button>
         </div>
@@ -185,26 +241,40 @@ export default function MultiplayerPage() {
   if (phase === "lobby" || phase === "countdown") {
     return (
       <div className="bg-asphalt-2 border border-line rounded-2xl p-5">
-        <div className="font-display text-3xl tracking-[8px] text-cyan">{room}</div>
+        <div className="font-display text-3xl tracking-[8px] text-cyan">
+          {room}
+        </div>
         <div className="flex gap-2.5 mt-2">
           <button
-            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/multiplayer?room=${room}`)}
+            onClick={() =>
+              navigator.clipboard.writeText(
+                `${window.location.origin}/multiplayer?room=${room}`,
+              )
+            }
             className="font-display text-[11px] tracking-wider border border-line text-fog rounded-lg px-4 py-2.5 hover:border-cyan hover:text-white"
           >
             Copy Invite Link
           </button>
-          <button onClick={leaveRoom} className="font-display text-[11px] tracking-wider border border-line text-fog rounded-lg px-4 py-2.5 hover:border-pink hover:text-white">
+          <button
+            onClick={leaveRoom}
+            className="font-display text-[11px] tracking-wider border border-line text-fog rounded-lg px-4 py-2.5 hover:border-pink hover:text-white"
+          >
             Leave Room
           </button>
         </div>
 
         <div className="flex flex-col gap-2 mt-3.5">
           {peerList.map((p) => (
-            <div key={p.id} className="flex justify-between bg-asphalt-3 border border-line rounded-lg px-3 py-2 text-xs">
+            <div
+              key={p.id}
+              className="flex justify-between bg-asphalt-3 border border-line rounded-lg px-3 py-2 text-xs"
+            >
               <span>
                 {p.name} {p.id === myId ? "(you)" : ""}
               </span>
-              {isHost && p.id === myId && <span className="text-amber text-[10px]">HOST</span>}
+              {isHost && p.id === myId && (
+                <span className="text-amber text-[10px]">HOST</span>
+              )}
             </div>
           ))}
         </div>
@@ -218,25 +288,48 @@ export default function MultiplayerPage() {
             {phase === "countdown" ? "Starting…" : "Start Race"}
           </button>
         ) : (
-          <p className="text-xs text-dim mt-3.5">Waiting for the host to start…</p>
+          <p className="text-xs text-dim mt-3.5">
+            Waiting for the host to start…
+          </p>
         )}
-        {peerList.length < 2 && <p className="text-xs text-dim mt-2">Waiting for at least one more racer to join…</p>}
+        {peerList.length < 2 && (
+          <p className="text-xs text-dim mt-2">
+            Waiting for at least one more racer to join…
+          </p>
+        )}
       </div>
     );
   }
 
-  const lanes: LaneData[] = peerList.map((p) => ({
-    key: p.id,
-    label: p.id === myId ? `${profile.name} (You)` : p.name,
-    emoji: p.id === myId ? myCar.emoji : "🚗",
-    pct: p.id === myId ? typing.progressPct : Math.min(96, p.pct),
-    isYou: p.id === myId,
-  }));
+  let peerIconIndex = 0;
+  const lanes: LaneData[] = peerList.map((p) => {
+    const isYou = p.id === myId;
+    const icon = isYou
+      ? (CAR_ICONS[myCar.id] ?? CarIcon)
+      : PEER_ICONS[peerIconIndex++ % PEER_ICONS.length];
+
+    return {
+      key: p.id,
+      label: isYou ? `${profile.name} (You)` : p.name,
+      icon,
+      pct: isYou ? typing.progressPct : Math.min(96, p.pct),
+      isYou,
+    };
+  });
 
   return (
     <div>
-      <HUD wpm={typing.wpm} acc={typing.acc} combo={typing.combo} penalty={typing.penaltyChars} />
-      <RaceTrack lanes={lanes} moving={phase === "racing"} boosting={typing.wpm >= 55} />
+      <HUD
+        wpm={typing.wpm}
+        acc={typing.acc}
+        combo={typing.combo}
+        penalty={typing.penaltyChars}
+      />
+      <RaceTrack
+        lanes={lanes}
+        moving={phase === "racing"}
+        boosting={typing.wpm >= 55}
+      />
       <TypingPanel
         targetText={targetText}
         typedChars={typing.typedChars}
@@ -251,7 +344,10 @@ export default function MultiplayerPage() {
         disabled={phase === "finished"}
       />
       {phase === "finished" && (
-        <button onClick={leaveRoom} className="font-display text-[11px] tracking-wider font-bold bg-gradient-to-r from-violet to-cyan text-asphalt rounded-lg px-4 py-2.5 mt-4">
+        <button
+          onClick={leaveRoom}
+          className="font-display text-[11px] tracking-wider font-bold bg-gradient-to-r from-violet to-cyan text-asphalt rounded-lg px-4 py-2.5 mt-4"
+        >
           Back to Lobby
         </button>
       )}
