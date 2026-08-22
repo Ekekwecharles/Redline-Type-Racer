@@ -6,6 +6,8 @@ import { CAR_ICONS } from "@/lib/car-icons";
 import { Car as CarIcon } from "lucide-react";
 
 export default function CarGarage() {
+  // profile holds the player's progress (level, coins, owned cars, selected car)
+  // selectCar equips an already-owned/unlocked car, buyCar purchases a coin-locked one
   const { profile, selectCar, buyCar } = useProfile();
 
   return (
@@ -14,20 +16,25 @@ export default function CarGarage() {
         Your Garage
       </h2>
 
+      {/* Responsive grid: cards auto-wrap, each at least 220px wide */}
       <div
         className="grid gap-3"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
       >
         {CARS.map((car) => {
+          // Whether the player currently meets this car's unlock requirement
           const unlocked = isCarUnlocked(car, profile);
+          // Whether this car is the one currently equipped
           const selected = profile.selectedCar === car.id;
-          const Icon = CAR_ICONS[car.id] ?? CarIcon; // fallback if a car has no mapped icon
+          // Fall back to a generic car icon if this car has no mapped icon
+          const Icon = CAR_ICONS[car.id] ?? CarIcon;
 
           return (
             <div
               key={car.id}
               className={`relative bg-asphalt-3 border rounded-xl p-3.5 ${selected ? "border-cyan" : "border-line"}`}
             >
+              {/* Badge showing how to unlock this car, only shown while locked */}
               {!unlocked && (
                 <div
                   className={`absolute top-2.5 right-2.5 text-[10px] border rounded-full px-2 py-0.5 ${car.unlock.type === "pro" ? "text-amber border-amber" : "text-dim border-line"}`}
@@ -55,6 +62,7 @@ export default function CarGarage() {
                 {car.desc}
               </p>
 
+              {/* Stat bars: width of the fill = stat value as a percentage */}
               {[
                 { label: "Speed", value: car.speed, color: "bg-cyan" },
                 { label: "Accel", value: car.accel, color: "bg-violet" },
@@ -74,8 +82,10 @@ export default function CarGarage() {
                 </div>
               ))}
 
+              {/* Action button: state depends on unlocked/selected/unlock type */}
               <div className="mt-2.5">
                 {unlocked ? (
+                  // Already unlocked: let the player equip it, unless it's already equipped
                   <button
                     disabled={selected}
                     onClick={() => selectCar(car.id)}
@@ -88,6 +98,7 @@ export default function CarGarage() {
                     {selected ? "Equipped" : "Select"}
                   </button>
                 ) : car.unlock.type === "coins" ? (
+                  // Locked but purchasable with coins
                   <button
                     onClick={() =>
                       buyCar(car.id, (car.unlock as { value: number }).value)
@@ -97,6 +108,7 @@ export default function CarGarage() {
                     Buy · {(car.unlock as { value: number }).value} coins
                   </button>
                 ) : (
+                  // Locked behind level or Pro requirement, no direct action available
                   <button
                     disabled
                     className="font-display text-[11px] tracking-wider border border-line text-dim rounded-lg px-3.5 py-2 opacity-50"
