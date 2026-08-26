@@ -24,6 +24,7 @@ interface Peer {
   finished: boolean;
 }
 
+// Generate a short, human-friendly room code (avoids ambiguous chars like 0/O, 1/I)
 function roomCode(len: number) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -39,6 +40,7 @@ export default function MultiplayerPage() {
   const [joinInput, setJoinInput] = useState("");
   const [isHost, setIsHost] = useState(false);
   const [phase, setPhase] = useState<Phase>("lobby");
+  // Other racers in the room, keyed by Pusher member id
   const [peers, setPeers] = useState<Record<string, Peer>>({});
   const [myId, setMyId] = useState<string | null>(null);
   const [targetText, setTargetText] = useState("");
@@ -53,6 +55,8 @@ export default function MultiplayerPage() {
     onComplete: () => handleFinish(),
   });
 
+  // Kick off the countdown -> racing transition once the race text and
+  // agreed start time (synced across all clients) are known
   const beginRace = useCallback((text: string, startAt: number) => {
     setTargetText(text);
     setPhase("countdown");
@@ -60,6 +64,8 @@ export default function MultiplayerPage() {
     setTimeout(() => setPhase("racing"), wait);
   }, []);
 
+  // Subscribe to a Pusher presence channel for the room and wire up all
+  // the realtime events: membership changes and race start/progress/finish
   const joinRoom = useCallback(
     (code: string, asHost: boolean) => {
       const pusher = getPusherClient();
@@ -70,6 +76,7 @@ export default function MultiplayerPage() {
       setRoom(code);
       setIsHost(asHost);
 
+      // Initial member list once our subscription is confirmed
       channel.bind("pusher:subscription_succeeded", (members: Members) => {
         setMyId(String(members.myID));
         const next: Record<string, Peer> = {};
@@ -83,6 +90,7 @@ export default function MultiplayerPage() {
         });
         setPeers(next);
       });
+      // Someone else joins the room after us
       channel.bind(
         "pusher:member_added",
         (m: { id: string; info: { name?: string } }) => {
@@ -97,6 +105,7 @@ export default function MultiplayerPage() {
           }));
         },
       );
+      // Someone leaves/disconnects
       channel.bind("pusher:member_removed", (m: { id: string }) => {
         setPeers((prev) => {
           const next = { ...prev };
@@ -104,12 +113,14 @@ export default function MultiplayerPage() {
           return next;
         });
       });
+      // Host broadcasts the race text + synchronized start time
       channel.bind(
         "client-start",
         (data: { text: string; startAt: number }) => {
           beginRace(data.text, data.startAt);
         },
       );
+      // A peer's live typing progress, used to animate their lane
       channel.bind("client-progress", (data: { id: string; pct: number }) => {
         setPeers((prev) =>
           prev[data.id]
@@ -117,6 +128,7 @@ export default function MultiplayerPage() {
             : prev,
         );
       });
+      // A peer crossed the finish line
       channel.bind("client-finish", (data: { id: string }) => {
         setPeers((prev) =>
           prev[data.id]
@@ -142,6 +154,8 @@ export default function MultiplayerPage() {
     setPeers({});
   }
 
+  // Host-only: generate the race text, pick a start time a few seconds out
+  // (giving all clients time to receive the event), and broadcast it
   function startRace() {
     if (!isHost || !channelRef.current) return;
     const text = genText(55);
@@ -150,6 +164,7 @@ export default function MultiplayerPage() {
     beginRace(text, startAt); // host doesn't receive its own client event, so start locally too
   }
 
+  // Called when our own typing reaches the end of the target text
   function handleFinish() {
     setPhase("finished");
     channelRef.current?.trigger("client-finish", { id: myId });
@@ -173,17 +188,21 @@ export default function MultiplayerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typing.progressPct]);
 
+  // Keep WPM/accuracy gauges live while actively typing
   useEffect(() => {
     if (typing.active) typing.tickGauges();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typing.correctChars, typing.mistakes]);
 
+  // Clean up the Pusher subscription on unmount
   useEffect(() => {
     return () => {
       channelRef.current?.unsubscribe();
     };
   }, []);
 
+  // Multiplayer requires an account (so peers can be identified by name);
+  // solo/AI races don't
   if (status !== "authenticated") {
     return (
       <div className="bg-asphalt-2 border border-line rounded-2xl p-6 text-center">
@@ -202,6 +221,7 @@ export default function MultiplayerPage() {
     );
   }
 
+  // Not in a room yet: show the create/join screen
   if (!room) {
     return (
       <div className="bg-asphalt-2 border border-line rounded-2xl p-5">
@@ -238,6 +258,8 @@ export default function MultiplayerPage() {
 
   const peerList = Object.values(peers);
 
+  // In a room but the race hasn't started: show the lobby with the room
+  // code, invite link, member list, and (for the host) the start button
   if (phase === "lobby" || phase === "countdown") {
     return (
       <div className="bg-asphalt-2 border border-line rounded-2xl p-5">
@@ -279,6 +301,7 @@ export default function MultiplayerPage() {
           ))}
         </div>
 
+        {/* Only the host can start; requires at least 2 racers present */}
         {isHost ? (
           <button
             onClick={startRace}
@@ -301,6 +324,9 @@ export default function MultiplayerPage() {
     );
   }
 
+  // Racing or finished: build the lane data for the race track, assigning
+  // each peer a distinct icon (cycling through PEER_ICONS) and using the
+  // player's own selected car for their own lane
   let peerIconIndex = 0;
   const lanes: LaneData[] = peerList.map((p) => {
     const isYou = p.id === myId;
@@ -312,6 +338,8 @@ export default function MultiplayerPage() {
       key: p.id,
       label: isYou ? `${profile.name} (You)` : p.name,
       icon,
+      // Our own progress comes from live typing state; peers' progress
+      // comes from the last "client-progress" event received
       pct: isYou ? typing.progressPct : Math.min(96, p.pct),
       isYou,
     };
