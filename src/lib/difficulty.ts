@@ -1,3 +1,7 @@
+add few comments here 
+
+
+```typescript
 import { DifficultyConfig, DifficultyKey, RaceSettings } from "@/types";
 
 export const DIFFICULTIES: Record<Exclude<DifficultyKey, "custom">, DifficultyConfig> = {
@@ -54,3 +58,5 @@ export const ACHIEVEMENTS = [
   { id: "ten_races", label: "Road Warrior" },
   { id: "level5", label: "Level 5" },
 ] as const;
+
+```
